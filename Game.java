@@ -1,11 +1,15 @@
 import java.util.Random;
 import java.util.Scanner;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Game {
     private final Player player;
     private final Scanner scanner;
     private final Random random = new Random();
     private String namePlayer;
+    private boolean isInBattle = false;
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public Game() {
         this.player = new Player();
@@ -39,41 +43,60 @@ public class Game {
             }
 
             if (!player.isAlive()) {
-                System.out.println("💀 Вы погибли. Игра окончена.");
+                System.out.println("Вы погибли. Игра окончена.");
                 break;
             }
         }
     }
+    
+    private void battleAsync() {
+        isInBattle = true;
+        executor.submit(() -> {
+            battle();
+            isInBattle = false;
+        });
+    }
 
     private void battle() {
         Monster monster = Monster.getRandomMonster();
-        System.out.println("⚔️ Вы столкнулись с " + monster.getName());
+        System.out.println("Вы столкнулись с " + monster.getName());
 
         while (monster.isAlive() && player.isAlive()) {
+            sleep(1000);
+
             if (random.nextInt(player.getAgility() + 1) > random.nextInt(monster.getAgility() + 1)) {
                 int damage = random.nextInt(player.getStrength() + 1);
                 monster.takeDamage(damage);
                 System.out.println("Вы нанесли " + damage + " урона.");
             } else {
-                System.out.println("Вы промахнулись!");
+                System.out.println("Вы промахнулись");
             }
 
             if (!monster.isAlive()) break;
+
+            sleep(1000);
 
             if (random.nextInt(monster.getAgility() + 1) > random.nextInt(player.getAgility() + 1)) {
                 int damage = random.nextInt(monster.getStrength() + 1);
                 player.takeDamage(damage);
                 System.out.println(monster.getName() + " ударил вас на " + damage + " урона.");
             } else {
-                System.out.println(monster.getName() + " промахнулся!");
+                System.out.println(monster.getName() + " промахнулся");
             }
 
             System.out.println("Ваш HP: " + player.getHp() + " | HP монстра: " + monster.getHp());
         }
 
         if (player.isAlive()) {
-            System.out.println(monster.getName() + " побежден!");
+            System.out.println(monster.getName() + " побежден");
             player.gainRewards(monster.getExpReward(), monster.getGoldReward());
+        } else {
+            System.out.println("Вы были повержены.");
         }
+    }
+    private void sleep(int ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ignored) {}
     }
 }
